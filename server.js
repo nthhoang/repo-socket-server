@@ -61,6 +61,70 @@ io.on("connection", (socket) => {
       });
     }
   });
+
+  // triển khai chức năng call video 
+socket.on("call_user", (data) => {
+  // data: { from_user_id, to_user_id, conversation_id, call_type: "video" }
+  const toSocketId = users[data.to_user_id];
+  if (toSocketId) {
+    io.to(toSocketId).emit("incoming_call", {
+      from_user_id: data.from_user_id,
+      conversation_id: data.conversation_id,
+      call_type: data.call_type || "video"
+    });
+  } else {
+    // target offline -> thông báo thất bại
+    io.to(socket.id).emit("call_unavailable", { to_user_id: data.to_user_id });
+  }
+});
+
+socket.on("reject_call", (data) => {
+  // data: { from_user_id, to_user_id, reason }
+  const toSocketId = users[data.to_user_id];
+  if (toSocketId) {
+    io.to(toSocketId).emit("call_rejected", data);
+  }
+});
+
+socket.on("accept_call", (data) => {
+  // data: { from_user_id, to_user_id, conversation_id }
+  const toSocketId = users[data.to_user_id];
+  if (toSocketId) {
+    io.to(toSocketId).emit("call_accepted", data);
+  }
+});
+
+// WebRTC signaling: offer, answer, ice_candidate
+socket.on("offer", (payload) => {
+  // payload: { to_user_id, from_user_id, sdp }
+  const toSocketId = users[payload.to_user_id];
+  if (toSocketId) {
+    io.to(toSocketId).emit("offer", payload);
+  }
+});
+
+socket.on("answer", (payload) => {
+  const toSocketId = users[payload.to_user_id];
+  if (toSocketId) {
+    io.to(toSocketId).emit("answer", payload);
+  }
+});
+
+socket.on("ice_candidate", (payload) => {
+  // payload: { to_user_id, candidate }
+  const toSocketId = users[payload.to_user_id];
+  if (toSocketId) {
+    io.to(toSocketId).emit("ice_candidate", payload);
+  }
+});
+
+socket.on("end_call", (payload) => {
+  // payload: { to_user_id, from_user_id, conversation_id }
+  const toSocketId = users[payload.to_user_id];
+  if (toSocketId) {
+    io.to(toSocketId).emit("end_call", payload);
+  }
+});
 });
 
 // API endpoint cho PHP gọi
